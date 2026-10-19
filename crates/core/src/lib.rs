@@ -13,6 +13,7 @@ pub mod distro;
 pub mod feed;
 pub mod platform;
 pub mod protocol;
+pub mod readme;
 pub mod release;
 pub mod status;
 pub mod time;

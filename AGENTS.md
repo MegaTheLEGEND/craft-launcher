@@ -62,9 +62,15 @@ settings file must produce an error the user can act on, never a panic. Shared s
   `cargo xtask local`); keep it loopback-only and behind the `local-mirror` cargo feature, which
   release builds never enable.
 - Verify each download against the release's `SHA256SUMS.txt` before running or installing it.
-- The details drawer's pictures are the one other download: JPEGs only, from a pinned tag of
+- The details drawer's pictures are one other download: JPEGs only, from a pinned tag of
   `https://raw.githubusercontent.com/storytold/craft-launcher-assets/` (`core::details`),
   capped at 2 MB each, cached, and never run. Pictures are not bundled in this repo.
+- The other is the pictures in a third-party app's README (`core::readme`, drawn by `ui-egui/src/readme.rs`):
+  PNG or JPEG only (checked by their first bytes, never SVG), HTTPS only, from GitHub's own hosts
+  (`github.com`, `*.githubusercontent.com`; a relative path is a file of that repo on
+  `raw.githubusercontent.com`), capped at 2 MB each and 40 per README, kept in memory only, and never
+  run. A README link opens in the browser only as an http(s) or mailto address (a relative path as its
+  GitHub page), with the real address in the tooltip. Widening either list is a maintainer's call.
 - Never run an installer with elevated rights silently; tell the user what is about to happen.
 - Never delete a user's files outside what the launcher itself installed.
 - **Agents never land or approve a third-party app.** A change that adds a catalog row, download

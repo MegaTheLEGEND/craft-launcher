@@ -13,6 +13,7 @@ use artcraft_launcher_core::protocol::{
     Backend, BackendOptions, CANCELLED, Capabilities, Command, Event, INSTALL_CANCELLED, JobPhase, LatestRelease, Origin, PAUSED, PausedDownload,
     Source,
 };
+use artcraft_launcher_core::readme;
 use artcraft_launcher_core::release::{Asset, Release};
 use artcraft_launcher_core::{CraftApp, Installed, PackageKind, SUITE, all_apps, version};
 
@@ -1050,6 +1051,29 @@ impl NativeBackend {
             shared.emit(Event::Readme { app: id, result });
         });
     }
+
+    /// Fetches one picture a third-party README shows, in the background. Only addresses that
+    /// `core::readme` allows are fetched (the UI checked already; this checks again), and only a
+    /// PNG or a JPEG is handed back, never a page that happened to answer.
+    fn fetch_readme_image(&self, url: &str) {
+        let (shared, http, url) = (self.shared.clone(), self.http.clone(), url.to_string());
+        std::thread::spawn(move || {
+            let result = if !readme::image_allowed(&url) {
+                Err("pictures from this address aren't loaded".to_string())
+            } else {
+                match http {
+                    None => Err("secure connections aren't available".to_string()),
+                    Some(http) => match http.get_bytes(&url, readme::MAX_README_IMAGE_BYTES) {
+                        Ok(Some(bytes)) if readme::sniff(&bytes).is_some() => Ok(bytes),
+                        Ok(Some(_)) => Err("the answer isn't a PNG or JPEG picture".to_string()),
+                        Ok(None) => Err("this picture isn't published".to_string()),
+                        Err(why) => Err(why),
+                    },
+                }
+            };
+            shared.emit(Event::ReadmeImage { url, result });
+        });
+    }
 }
 
 impl Backend for NativeBackend {
@@ -1105,6 +1129,7 @@ impl Backend for NativeBackend {
             Command::RemoveCustomApp { app } => self.remove_custom_app(&app),
             Command::FetchScreenshots { app } => self.fetch_screenshots(&app),
             Command::FetchReadme { app } => self.fetch_readme(&app),
+            Command::FetchReadmeImage { url } => self.fetch_readme_image(&url),
             Command::Configure(options) => {
                 let changed_pre = {
                     let mut o = self.shared.options.lock().unwrap_or_else(PoisonError::into_inner);

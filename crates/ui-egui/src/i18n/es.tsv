@@ -371,7 +371,7 @@ column	Version	Versión
 	ArtCraft doesn't make, review or vouch for them, and can't help if one doesn't work or causes problems.	ArtCraft no las crea, revisa ni avala, y no puede ayudarte si alguna no funciona o causa problemas.
 	Install only apps you trust.	Instala solo aplicaciones en las que confíes.
 	Remove {name} from ArtCraft Launcher?	¿Quitar {name} de ArtCraft Launcher?
-	ArtCraft Launcher will stop showing and updating it. The app stays on your computer unless you uninstall it first.	ArtCraft Launcher dejará de mostrarla y actualizarla. La aplicación sigue en tu equipo, salvo que la desinstales antes.
+	ArtCraft Launcher will uninstall it, then stop showing and updating it. Your documents and settings stay.	ArtCraft Launcher la desinstalará y después dejará de mostrarla y actualizarla. Tus documentos y ajustes se conservan.
 	ArtCraft Launcher will stop showing it. You can add it again later.	ArtCraft Launcher dejará de mostrarla. Podrás añadirla de nuevo más tarde.
 	That doesn't look like a GitHub repository. Use owner/repo or a github.com link.	Eso no parece un repositorio de GitHub. Usa owner/repo o un enlace de github.com.
 	That's one of ArtCraft's own apps, which the Craft App Suite already covers.	Es una aplicación propia de ArtCraft, que la Craft App Suite ya incluye.

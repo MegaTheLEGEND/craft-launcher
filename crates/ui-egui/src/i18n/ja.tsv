@@ -393,7 +393,7 @@ column	Version	バージョン
 	ArtCraft doesn't make, review or vouch for them, and can't help if one doesn't work or causes problems.	ArtCraft はこれらのアプリを作成・審査・保証しておらず、動作しない場合や問題が起きた場合も対応できません。
 	Install only apps you trust.	信頼できるアプリだけをインストールしてください。
 	Remove {name} from ArtCraft Launcher?	{name} を ArtCraft Launcher から削除しますか？
-	ArtCraft Launcher will stop showing and updating it. The app stays on your computer unless you uninstall it first.	ArtCraft Launcher はこのアプリの表示と更新をやめます。先にアンインストールしない限り、アプリ自体はコンピューターに残ります。
+	ArtCraft Launcher will uninstall it, then stop showing and updating it. Your documents and settings stay.	ArtCraft Launcher はこのアプリをアンインストールしてから、表示と更新をやめます。ドキュメントと設定はそのまま残ります。
 	ArtCraft Launcher will stop showing it. You can add it again later.	ArtCraft Launcher はこのアプリの表示をやめます。あとでもう一度追加できます。
 	That doesn't look like a GitHub repository. Use owner/repo or a github.com link.	GitHub のリポジトリではないようです。owner/repo または github.com のリンクを使用してください。
 	That's one of ArtCraft's own apps, which the Craft App Suite already covers.	これは ArtCraft 自身のアプリで、Craft App Suite にすでに含まれています。

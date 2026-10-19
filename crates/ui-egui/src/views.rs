@@ -402,6 +402,8 @@ impl LauncherUi {
     /// from GitHub unless it is already here).
     fn open_page(&mut self, id: &str) {
         if self.entry(id).is_some_and(|e| e.app.third_party) {
+            // Opening the page is the "try again" for pictures that failed before.
+            self.readme_images.retain(|_, picture| !matches!(picture, crate::details::Picture::Failed(_)));
             if !matches!(self.readmes.get(id), Some(crate::readme::Readme::Ready(_) | crate::readme::Readme::Loading)) {
                 self.readmes.insert(id.to_string(), crate::readme::Readme::Loading);
                 self.send(Command::FetchReadme { app: id.to_string() });

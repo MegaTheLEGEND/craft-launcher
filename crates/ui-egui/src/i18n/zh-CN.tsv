@@ -358,7 +358,7 @@ column	Version	版本
 	ArtCraft doesn't make, review or vouch for them, and can't help if one doesn't work or causes problems.	ArtCraft 不制作、不审核也不担保这些应用，如果某个应用无法运行或引发问题，ArtCraft 也无法提供帮助。
 	Install only apps you trust.	请只安装您信任的应用。
 	Remove {name} from ArtCraft Launcher?	要将 {name} 从 ArtCraft Launcher 中移除吗？
-	ArtCraft Launcher will stop showing and updating it. The app stays on your computer unless you uninstall it first.	ArtCraft Launcher 将不再显示和更新它。除非您先卸载，否则应用本身仍保留在您的电脑上。
+	ArtCraft Launcher will uninstall it, then stop showing and updating it. Your documents and settings stay.	ArtCraft Launcher 会先卸载它，然后不再显示和更新它。你的文档和设置会保留。
 	ArtCraft Launcher will stop showing it. You can add it again later.	ArtCraft Launcher 将不再显示它。您之后可以重新添加。
 	That doesn't look like a GitHub repository. Use owner/repo or a github.com link.	这看起来不是 GitHub 仓库。请使用 owner/repo 或 github.com 链接。
 	That's one of ArtCraft's own apps, which the Craft App Suite already covers.	这是 ArtCraft 自己的应用，Craft App Suite 已包含它。

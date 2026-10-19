@@ -59,6 +59,11 @@ pub enum Command {
     FetchReadme {
         app: String,
     },
+    /// Fetch a picture a third-party app's README shows (`core::readme::image_url` has already
+    /// decided the address may be fetched). Answered by [`Event::ReadmeImage`].
+    FetchReadmeImage {
+        url: String,
+    },
     /// Change how the backend behaves.
     Configure(BackendOptions),
     /// Add a third-party app by its GitHub `owner/repo` (or link). ArtCraft provides no support
@@ -67,8 +72,8 @@ pub enum Command {
     AddCustomApp {
         repo: String,
     },
-    /// Take a third-party app off the list (what it installed stays on the machine unless it is
-    /// uninstalled first).
+    /// Take a third-party app off the list. What it installed stays on the machine: the UI sends
+    /// [`Command::Uninstall`] first when the app is installed, and this once that has worked.
     RemoveCustomApp {
         app: String,
     },
@@ -247,6 +252,12 @@ pub enum Event {
     Readme {
         app: String,
         result: Result<String, String>,
+    },
+    /// A picture of a third-party README (PNG or JPEG), or why it couldn't be had. `url` is the
+    /// address [`Command::FetchReadmeImage`] asked for.
+    ReadmeImage {
+        url: String,
+        result: Result<Vec<u8>, String>,
     },
     /// The third-party apps the user has added (`owner/repo`, in the order they were added),
     /// sent at startup and whenever the list changes. Replaces any earlier list.

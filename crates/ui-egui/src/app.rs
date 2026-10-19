@@ -150,6 +150,11 @@ pub struct LauncherUi {
     pub(crate) pictures: std::collections::HashMap<(String, String), crate::details::Picture>,
     /// The READMEs of third-party apps, by app id.
     pub(crate) readmes: std::collections::HashMap<String, crate::readme::Readme>,
+    /// Pictures a README refers to, by the address the backend was asked for.
+    pub(crate) readme_images: std::collections::HashMap<String, crate::details::Picture>,
+    /// Third-party apps whose uninstaller was started by "Remove app": each leaves the list once
+    /// it is really gone.
+    pub(crate) removing: std::collections::BTreeSet<String>,
     started: bool,
     applied_theme: Option<theme::ThemeChoice>,
     /// The OS asks for fewer animations: what the host last said, and the context's time to ask
@@ -228,6 +233,8 @@ impl LauncherUi {
             detail_zoom: false,
             pictures: std::collections::HashMap::new(),
             readmes: std::collections::HashMap::new(),
+            readme_images: std::collections::HashMap::new(),
+            removing: std::collections::BTreeSet::new(),
             started: false,
             applied_theme: None,
             reduce_motion: false,
@@ -415,9 +422,13 @@ impl LauncherUi {
                 self.toast(ctx, why, true);
                 true
             }
+            Event::ReadmeImage { url, result } => {
+                self.readme_images.insert(url, crate::details::Picture::from_result(result));
+                true
+            }
             Event::Readme { app, result } => {
                 let state = match result {
-                    Ok(text) => crate::readme::Readme::Ready(text),
+                    Ok(text) => crate::readme::Readme::ready(&text),
                     Err(why) => crate::readme::Readme::Failed(why),
                 };
                 self.readmes.insert(app, state);
@@ -478,6 +489,13 @@ impl LauncherUi {
                     e.job = None;
                 }
                 let kept = self.entry(&app).is_some_and(|e| e.ready);
+                // "Remove app" runs the uninstaller first. Only once the app is really gone (the
+                // backend looked again before saying it finished) does it leave the list; a failed or
+                // cancelled uninstall keeps it, so nothing is left installed but unlisted.
+                let gone = self.entry(&app).is_some_and(|e| e.detected && e.installed.is_none());
+                if self.removing.remove(&app) && result.is_ok() && gone {
+                    self.send(Command::RemoveCustomApp { app: app.clone() });
+                }
                 match result {
                     Ok(msg) => self.toast(ctx, msg, false),
                     // The paused card says it all.

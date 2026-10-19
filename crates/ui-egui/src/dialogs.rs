@@ -144,12 +144,16 @@ impl LauncherUi {
         let footer_h = theme::CONTROL_H + 32.0;
         let body_h = (size.y - hero_h - footer_h - 2.0).max(0.0);
         let saved = crate::sheet::accent_scroll(ui, &t, t.accent);
+        // The pictures the README shows that haven't been asked for yet.
+        let mut wanted: Vec<String> = Vec::new();
         egui::ScrollArea::vertical().id_salt("readme-body").max_height(body_h).auto_shrink([false, true]).show(ui, |ui| {
             *ui.visuals_mut() = saved;
             egui::Frame::new().inner_margin(egui::Margin::same(theme::PAD as i8)).show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 match self.readmes.get(id) {
-                    Some(crate::readme::Readme::Ready(text)) => crate::readme::show(ui, text, self.notes_zoom),
+                    Some(crate::readme::Readme::Ready(doc)) => {
+                        wanted = crate::readme::show(ui, doc, self.notes_zoom, entry.app.repo, &self.readme_images);
+                    }
                     Some(crate::readme::Readme::Failed(why)) => {
                         ui.add(egui::Label::new(RichText::new(fmt(tl!("Couldn't load the README: {why}"), &[("why", why)])).color(t.muted)).wrap());
                     }
@@ -159,6 +163,10 @@ impl LauncherUi {
                 }
             });
         });
+        for url in wanted {
+            self.readme_images.insert(url.clone(), crate::details::Picture::Loading);
+            self.send(Command::FetchReadmeImage { url });
+        }
         ui.painter().hline(ui.max_rect().x_range(), ui.cursor().top(), t.hairline());
         let mut close = false;
         egui::Frame::new().inner_margin(egui::Margin::symmetric(theme::PAD as i8, 16)).show(ui, |ui| {
@@ -302,14 +310,16 @@ impl LauncherUi {
         close
     }
 
-    /// Takes a third-party app off the list; what it installed stays unless uninstalled first.
+    /// Takes a third-party app off the list. An installed app is uninstalled first (the same
+    /// uninstaller as "Uninstall…"), and leaves the list only once that has worked.
     fn remove_third_party_dialog(&mut self, ui: &mut egui::Ui, id: &str) -> bool {
         let Some(entry) = self.entry(id).cloned() else { return true };
         let t = Tokens::get(ui.ctx());
         ui.set_width(440.0f32.min(ui.ctx().content_rect().width() - 80.0));
         Self::title(ui, None, &fmt(tl!("Remove {name} from ArtCraft Launcher?"), &[("name", entry.app.name)]), "");
-        let how = if entry.status(self.platform, self.caps.manage_apps).is_installed() {
-            tl!("ArtCraft Launcher will stop showing and updating it. The app stays on your computer unless you uninstall it first.")
+        let installed = self.caps.manage_apps && entry.status(self.platform, self.caps.manage_apps).is_installed();
+        let how = if installed {
+            tl!("ArtCraft Launcher will uninstall it, then stop showing and updating it. Your documents and settings stay.")
         } else {
             tl!("ArtCraft Launcher will stop showing it. You can add it again later.")
         };
@@ -319,7 +329,12 @@ impl LauncherUi {
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if widgets::button(ui, tl!("Remove app"), Kind::Danger, 110.0).clicked() {
-                    self.send(Command::RemoveCustomApp { app: id.to_string() });
+                    if installed {
+                        self.removing.insert(id.to_string());
+                        self.send(Command::Uninstall { app: id.to_string() });
+                    } else {
+                        self.send(Command::RemoveCustomApp { app: id.to_string() });
+                    }
                     close = true;
                 }
                 if widgets::button(ui, tl!("Cancel"), Kind::Secondary, 90.0).clicked() {

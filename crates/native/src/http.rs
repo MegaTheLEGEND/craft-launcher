@@ -137,6 +137,28 @@ impl Http {
         }
     }
 
+    /// The README of a GitHub repository as raw text, `Ok(None)` when it has none. At most
+    /// `max` bytes are read; a longer README is cut there.
+    pub fn get_readme(&self, repo: &str, max: usize) -> Result<Option<String>, String> {
+        let url = format!("https://api.github.com/repos/{repo}/readme");
+        let mut req = self.small.get(&url).header("Accept", "application/vnd.github.raw+json").header("X-GitHub-Api-Version", "2022-11-28");
+        if let Some(token) = &self.token {
+            req = req.header("Authorization", &format!("Bearer {token}"));
+        }
+        let mut resp = req.call().map_err(|e| format!("couldn't reach GitHub ({e})"))?;
+        match resp.status().as_u16() {
+            200 => {
+                let mut bytes =
+                    resp.body_mut().with_config().limit(MAX_SMALL).read_to_vec().map_err(|e| format!("unreadable answer from GitHub ({e})"))?;
+                bytes.truncate(max);
+                Ok(Some(String::from_utf8_lossy(&bytes).into_owned()))
+            }
+            404 => Ok(None),
+            403 | 429 => Err("GitHub's request limit was reached. Try again later.".into()),
+            s => Err(format!("GitHub answered HTTP {s}")),
+        }
+    }
+
     /// ArtCraft's release feed, or why it couldn't be read. Never takes more than ~10 seconds.
     pub fn get_feed(&self, url: &str) -> Result<String, FeedError> {
         let failed = |why: String| FeedError { why, throttled: false, retry_after: None };

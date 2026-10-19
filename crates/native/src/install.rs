@@ -98,7 +98,7 @@ pub fn install_at(
     let result = match kind {
         #[cfg(target_os = "macos")]
         PackageKind::Dmg => {
-            macos::install_dmg(app, &file, existing, destination.as_deref(), job.replace, job.paths, &macos::Expect::release(release))
+            macos::install_dmg(app, &file, existing, destination.as_deref(), job.replace, job.paths, &macos::Expect::for_app(app, release))
                 .map(|path| Some(record(&version, kind, path, Vec::new(), false)))
         }
         #[cfg(windows)]
@@ -1137,8 +1137,9 @@ pub mod macos {
     /// What a new copy must prove before it replaces anything. The checksum shows the download is
     /// the file the release lists; these show the app inside is the one the release promises.
     pub struct Expect<'a> {
-        /// The team whose Developer ID signature the bundle must carry. `None` only in tests,
-        /// which build unsigned bundles.
+        /// The team whose Developer ID signature the bundle must carry. `None` in tests, which
+        /// build unsigned bundles, and for third-party apps, whose signer ArtCraft can't know
+        /// (they keep the version check, and the checksum check that comes before both).
         pub team: Option<&'a str>,
         /// The release's version, which the bundle must report. `None` when the tag isn't one.
         pub version: Option<&'a Version>,
@@ -1147,6 +1148,12 @@ pub mod macos {
     impl<'a> Expect<'a> {
         pub fn release(release: &'a Release) -> Self {
             Self { team: Some(TEAM_ID), version: release.version.as_ref() }
+        }
+
+        /// [`Expect::release`] for a Craft App; a third-party app can't carry ArtCraft's
+        /// signature, so only its version is checked.
+        pub fn for_app(app: &artcraft_launcher_core::CraftApp, release: &'a Release) -> Self {
+            if app.third_party { Self { team: None, version: release.version.as_ref() } } else { Self::release(release) }
         }
     }
 

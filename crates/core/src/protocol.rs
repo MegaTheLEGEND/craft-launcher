@@ -55,8 +55,23 @@ pub enum Command {
     FetchScreenshots {
         app: String,
     },
+    /// Fetch the README of a third-party app's GitHub repository. Answered by [`Event::Readme`].
+    FetchReadme {
+        app: String,
+    },
     /// Change how the backend behaves.
     Configure(BackendOptions),
+    /// Add a third-party app by its GitHub `owner/repo` (or link). ArtCraft provides no support
+    /// for it: the launcher only keeps it up to date. Answered by [`Event::CustomApps`], or
+    /// [`Event::CustomAppRefused`] when it can't be added.
+    AddCustomApp {
+        repo: String,
+    },
+    /// Take a third-party app off the list (what it installed stays on the machine unless it is
+    /// uninstalled first).
+    RemoveCustomApp {
+        app: String,
+    },
 }
 
 /// Parent folders for new installs. Existing installations keep their recorded location.
@@ -227,6 +242,21 @@ pub enum Event {
         app: String,
         key: String,
         result: Result<Vec<u8>, String>,
+    },
+    /// A third-party app's README (Markdown), or why it couldn't be had.
+    Readme {
+        app: String,
+        result: Result<String, String>,
+    },
+    /// The third-party apps the user has added (`owner/repo`, in the order they were added),
+    /// sent at startup and whenever the list changes. Replaces any earlier list.
+    CustomApps {
+        repos: Vec<String>,
+    },
+    /// A third-party app couldn't be added.
+    CustomAppRefused {
+        repo: String,
+        reason: crate::custom::AddError,
     },
     CheckStarted,
     CheckFinished {

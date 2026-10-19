@@ -7,6 +7,7 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod catalog;
+pub mod custom;
 pub mod details;
 pub mod distro;
 pub mod feed;
@@ -18,6 +19,7 @@ pub mod time;
 pub mod version;
 
 pub use catalog::{CraftApp, SUITE};
+pub use custom::{CustomApp, CustomList, all_apps, custom_apps};
 pub use platform::{Arch, Os, PackageKind, Platform};
 pub use release::{Asset, Release};
 pub use status::{AppStatus, InstallSource, Installed, Latest};

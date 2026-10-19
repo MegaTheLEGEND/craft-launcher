@@ -186,9 +186,10 @@ impl Parser<'_> {
     /// `[text](address "title")`, `[text][label]` or `[label]` starting at `start` (the `[`):
     /// the text's characters, the address and the index after the whole thing.
     fn link_parts<'c>(&self, c: &'c [char], start: usize) -> Option<(&'c [char], String, usize)> {
-        let mut depth = 0usize;
+        // The `[` at `start` always opens the link, so count it up front.
+        let mut depth = 1usize;
         let mut close = None;
-        for i in start..c.len().min(start + 2000) {
+        for i in start + 1..c.len().min(start + 2000) {
             match at(c, i) {
                 '\\' => {}
                 '[' if at(c, i.wrapping_sub(1)) != '\\' => depth += 1,
@@ -1026,6 +1027,14 @@ mod tests {
     fn inline(s: &str) -> Vec<Inline> {
         let none = HashMap::new();
         Parser { refs: &none, images_left: MAX_IMAGES }.inline(s)
+    }
+
+    #[test]
+    fn escaped_backslash_before_bracket_does_not_panic() {
+        // The text is: \\[x] y
+        let _ = inline("\\\\[x] y");
+        let _ = inline("\\\\[x]");
+        let _ = inline("\\\\]");
     }
 
     #[test]

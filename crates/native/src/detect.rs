@@ -104,13 +104,21 @@ fn is_installer_entry(app: &CraftApp, display_name: &str, publisher: &str) -> bo
 }
 
 /// Whether an uninstall entry named `display_name` is the third-party app called `name` (its
-/// repository's name): compared without case, spaces or punctuation, and allowing a version or
-/// a longer title after the name (`my-tool` matches `My Tool 1.2`).
+/// repository's name): compared without case, spaces or punctuation, and allowing only a version
+/// after the name (`my-tool` matches `My Tool 1.2` and `My Tool v1.2`, not `My Tool Pro`). It is
+/// strict on purpose: a match is what "Remove app" hands to the Windows Installer, so a loose
+/// match could uninstall an unrelated program.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn third_party_name_matches(name: &str, display_name: &str) -> bool {
     let plain = |s: &str| s.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect::<String>();
     let (name, shown) = (plain(name), plain(display_name));
-    name.chars().count() >= 3 && shown.starts_with(&name)
+    if name.chars().count() < 3 {
+        return false;
+    }
+    let Some(rest) = shown.strip_prefix(name.as_str()) else { return false };
+    // Nothing after the name, or just a version (`1.2.3` and `v1.2.3` become `123` and `v123`).
+    let digits = rest.strip_prefix('v').unwrap_or(rest);
+    rest.is_empty() || (!digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()))
 }
 
 /// Where a Windows install of `app` may keep its exe, in the order to try: the entry's
@@ -613,6 +621,10 @@ mod tests {
         assert!(third_party_name_matches("mytool", "MyTool"));
         assert!(!third_party_name_matches("my-tool", "Other Tool"));
         assert!(!third_party_name_matches("my-tool", "My"));
+        assert!(third_party_name_matches("my-tool", "My Tool v1.2"));
+        // A longer title is a different program: never hand it to the uninstaller.
+        assert!(!third_party_name_matches("notes", "Notes Pro 3"));
+        assert!(!third_party_name_matches("my-tool", "My Tool Pro"));
         // Too short a name would match half the machine.
         assert!(!third_party_name_matches("ab", "ABBYY FineReader"));
     }

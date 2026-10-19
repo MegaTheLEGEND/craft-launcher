@@ -89,7 +89,7 @@ pub fn install_at(
         return Err(format!("Cannot update {} to {}: installed version {} is newer", app.name, release.version_label(), inst_v));
     }
     log::info!("{}: starting {} to {} ({})", app.name, if existing.is_some() { "update" } else { "install" }, release.version_label(), kind.label());
-    let file = download(release, asset, job)?;
+    let file = download(release, asset, job, app.third_party)?;
     log::info!("{}: download ready ({}), running installer...", app.name, file.display());
     // Past this point the install can't be interrupted halfway.
     (job.phase)(JobPhase::Installing);
@@ -332,13 +332,15 @@ pub fn available_kinds() -> Vec<PackageKind> {
 /// Fetches `asset` into the download folder, checked against its published SHA-256: the feed's
 /// or GitHub's per-file digest, else the release's `SHA256SUMS.txt`. A release with neither is
 /// refused before anything is fetched: a file nothing vouches for is never installed (#90).
-pub(crate) fn download(release: &Release, asset: &Asset, job: &mut Job<'_>) -> Result<PathBuf, String> {
+/// A `third_party` app's release must list the file in its own `SHA256SUMS.txt`: a per-file
+/// digest from the feed isn't enough, and a release without that list or entry is refused.
+pub(crate) fn download(release: &Release, asset: &Asset, job: &mut Job<'_>, third_party: bool) -> Result<PathBuf, String> {
     if !release::valid_file_name(&asset.name) {
         return Err("the release has an unexpected file name".into());
     }
     let sha = match &asset.sha256 {
-        Some(s) => Some(s.clone()),
-        None => published_checksum(release, asset, job.http)?,
+        Some(s) if !third_party => Some(s.clone()),
+        _ => published_checksum(release, asset, job.http)?,
     };
     let Some(sha) = sha else {
         return Err(format!(

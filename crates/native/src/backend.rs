@@ -1064,7 +1064,7 @@ impl NativeBackend {
             } else {
                 match http {
                     None => Err("secure connections aren't available".to_string()),
-                    Some(http) => match http.get_bytes(&url, readme::MAX_README_IMAGE_BYTES) {
+                    Some(http) => match http.get_bytes_checked(&url, readme::MAX_README_IMAGE_BYTES, readme::image_allowed) {
                         Ok(Some(bytes)) if readme::sniff(&bytes).is_some() => Ok(bytes),
                         Ok(Some(_)) => Err("the answer isn't a PNG or JPEG picture".to_string()),
                         Ok(None) => Err("this picture isn't published".to_string()),

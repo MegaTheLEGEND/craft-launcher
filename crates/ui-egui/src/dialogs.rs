@@ -318,7 +318,9 @@ impl LauncherUi {
         let t = Tokens::get(ui.ctx());
         ui.set_width(440.0f32.min(ui.ctx().content_rect().width() - 80.0));
         Self::title(ui, None, &fmt(tl!("Remove {name} from ArtCraft Launcher?"), &[("name", entry.app.name)]), "");
-        let installed = self.caps.manage_apps && entry.status(self.platform, self.caps.manage_apps).is_installed();
+        // Whether it is installed, not whether this build manages apps: removing the entry must
+        // never leave an installed app's files behind unmentioned.
+        let installed = entry.status(self.platform, self.caps.manage_apps).is_installed();
         let how = if installed {
             tl!("ArtCraft Launcher will uninstall it, then stop showing and updating it. Your documents and settings stay.")
         } else {

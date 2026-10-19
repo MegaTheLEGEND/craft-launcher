@@ -230,6 +230,8 @@ impl NativeBackend {
         }
         self.custom = staged;
         custom::set_custom(&self.custom);
+        // From here `still_registered` refuses this app, so no check still running can store an
+        // answer behind the clearing below.
         self.shared.installed.lock().unwrap_or_else(PoisonError::into_inner).remove(id);
         self.shared.latest.lock().unwrap_or_else(PoisonError::into_inner).remove(id);
         self.shared.answered.lock().unwrap_or_else(PoisonError::into_inner).remove(id);
@@ -250,11 +252,19 @@ impl NativeBackend {
         std::thread::spawn(move || {
             let answer = source.latest(app.repo, pre);
             source.save();
-            if let LatestRelease::Found(r) = &answer.latest {
-                shared.latest.lock().unwrap_or_else(PoisonError::into_inner).insert(app.id.to_string(), r.clone());
-            }
-            if !matches!(answer.latest, LatestRelease::Failed(_)) {
-                shared.answered.lock().unwrap_or_else(PoisonError::into_inner).insert(app.id.to_string());
+            {
+                // Checked under the lock `remove_custom_app` also takes, so an app removed while
+                // this ran can't get its answer back, nor hand it to a later app with the same id.
+                let mut latest = shared.latest.lock().unwrap_or_else(PoisonError::into_inner);
+                if !still_registered(app) {
+                    return;
+                }
+                if let LatestRelease::Found(r) = &answer.latest {
+                    latest.insert(app.id.to_string(), r.clone());
+                }
+                if !matches!(answer.latest, LatestRelease::Failed(_)) {
+                    shared.answered.lock().unwrap_or_else(PoisonError::into_inner).insert(app.id.to_string());
+                }
             }
             shared.emit(Event::Latest { app: app.id.to_string(), latest: answer.latest, from: Origin::GitHub });
         });
@@ -370,11 +380,18 @@ impl NativeBackend {
                                 continue;
                             }
                             let Some(latest) = latest else { continue };
-                            if let LatestRelease::Found(r) = &latest {
-                                shared.latest.lock().unwrap_or_else(PoisonError::into_inner).insert(app.id.to_string(), r.clone());
-                            }
-                            if !matches!(latest, LatestRelease::Failed(_)) {
-                                shared.answered.lock().unwrap_or_else(PoisonError::into_inner).insert(app.id.to_string());
+                            {
+                                // As in `check_custom`: an app removed during the check keeps nothing.
+                                let mut known = shared.latest.lock().unwrap_or_else(PoisonError::into_inner);
+                                if !still_registered(app) {
+                                    continue;
+                                }
+                                if let LatestRelease::Found(r) = &latest {
+                                    known.insert(app.id.to_string(), r.clone());
+                                }
+                                if !matches!(latest, LatestRelease::Failed(_)) {
+                                    shared.answered.lock().unwrap_or_else(PoisonError::into_inner).insert(app.id.to_string());
+                                }
                             }
                             shared.emit(Event::Latest { app: app.id.to_string(), latest, from });
                         }
@@ -1050,6 +1067,13 @@ impl NativeBackend {
 
 /// The most of a README that is kept (the rest is cut).
 const MAX_README_BYTES: usize = 200 * 1024;
+
+/// Whether `app` is still the app registered under its id: always for ArtCraft's own, and for a
+/// third-party app only while its repository is still on the list. An answer for a removed app
+/// (or for another repository that had the same name) must not be kept.
+fn still_registered(app: &CraftApp) -> bool {
+    !app.third_party || artcraft_launcher_core::custom_apps().iter().any(|a| a.id == app.id && a.repo.eq_ignore_ascii_case(app.repo))
+}
 
 impl NativeBackend {
     /// Fetches a third-party app's README from its repository, in the background.

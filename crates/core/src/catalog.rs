@@ -41,10 +41,12 @@ impl CraftApp {
         }
     }
 
+    /// The app's GitHub releases page.
     pub fn releases_url(&self) -> String {
         format!("https://github.com/{}/releases", self.repo)
     }
 
+    /// The app's GitHub repository page.
     pub fn repo_url(&self) -> String {
         format!("https://github.com/{}", self.repo)
     }

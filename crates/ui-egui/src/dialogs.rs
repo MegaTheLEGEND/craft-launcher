@@ -218,6 +218,7 @@ impl LauncherUi {
         close
     }
 
+    /// The "Uninstall {app}?" confirmation. Returns `true` when the dialog should close.
     fn uninstall_dialog(&mut self, ui: &mut egui::Ui, id: &str) -> bool {
         let Some(entry) = self.entry(id).cloned() else { return true };
         let t = Tokens::get(ui.ctx());
@@ -345,6 +346,7 @@ impl LauncherUi {
         close
     }
 
+    /// Asks before replacing an existing copy of the app at `path`. Returns `true` when the dialog should close.
     fn replace_dialog(&mut self, ui: &mut egui::Ui, id: &str, path: &str) -> bool {
         let Some(app) = self.entry(id).map(|e| e.app) else { return true };
         let t = Tokens::get(ui.ctx());

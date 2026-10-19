@@ -1503,6 +1503,8 @@ pub mod windows {
         INSTALLER.alone(&cancelled(stop), &mut turn(phase, working), work).unwrap_or_else(|| Err(CANCELLED.into()))
     }
 
+    /// Removes an app through the Windows Installer: runs `msiexec /x` for each product code found for it,
+    /// and fails if none is registered. Waits its turn behind any other installer job of ours.
     pub fn uninstall_msi(app: &CraftApp, stop: &Stop, phase: &mut dyn FnMut(JobPhase)) -> Result<(), String> {
         let installs = crate::detect::windows::msi_installs(app);
         if installs.is_empty() {

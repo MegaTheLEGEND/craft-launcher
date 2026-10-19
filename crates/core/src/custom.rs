@@ -74,6 +74,7 @@ impl CustomList {
         clean
     }
 
+    /// Serialises the list as pretty-printed JSON for saving, or the serde error as text.
     pub fn to_json(&self) -> Result<Vec<u8>, String> {
         serde_json::to_vec_pretty(self).map_err(|e| e.to_string())
     }
@@ -128,14 +129,17 @@ pub fn parse_repo(input: &str) -> Option<String> {
     Some(format!("{owner}/{name}"))
 }
 
+/// Whether `s` is a legal GitHub owner name: 1 to 39 letters, digits or hyphens, with no hyphen at either end.
 fn valid_owner(s: &str) -> bool {
     (1..=39).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-') && !s.starts_with('-') && !s.ends_with('-')
 }
 
+/// Whether `s` is a legal GitHub repository name: 1 to 100 letters, digits, `-`, `_` or `.`, and not `.` or `..`.
 fn valid_name(s: &str) -> bool {
     (1..=100).contains(&s.len()) && s != "." && s != ".." && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
 }
 
+/// Splits `owner/name` into its two parts, or `None` when there is no slash.
 fn split(repo: &str) -> Option<(&str, &str)> {
     repo.split_once('/')
 }
@@ -146,6 +150,7 @@ pub fn id_for(repo_name: &str) -> String {
     repo_name.to_ascii_lowercase()
 }
 
+/// Whether `id` belongs to the launcher or a Craft App Suite app (including its former ids), so a third-party app can't take it.
 fn reserved_id(id: &str) -> bool {
     id == LAUNCHER_ID || SUITE.iter().any(|a| a.id == id || a.former_ids.contains(&id))
 }
@@ -157,6 +162,7 @@ static ACTIVE: RwLock<Vec<&'static CraftApp>> = RwLock::new(Vec::new());
 /// Every app ever built this run, so adding one back doesn't leak it twice.
 static BUILT: Mutex<Vec<&'static CraftApp>> = Mutex::new(Vec::new());
 
+/// Builds the `CraftApp` for a registered repository, reusing the one built earlier this run if there is one.
 fn build(repo: &str) -> Option<&'static CraftApp> {
     let (owner, name) = split(repo)?;
     let mut built = BUILT.lock().unwrap_or_else(PoisonError::into_inner);

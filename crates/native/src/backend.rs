@@ -248,6 +248,7 @@ impl NativeBackend {
         });
     }
 
+    /// The registered third-party app for `repo` (matched ignoring case), if any.
     fn custom_app(&self, repo: &str) -> Option<&'static CraftApp> {
         artcraft_launcher_core::custom_apps().into_iter().find(|a| a.repo.eq_ignore_ascii_case(repo))
     }

@@ -572,7 +572,8 @@ fn read_capped(resp: &mut ureq::http::Response<ureq::Body>, url: &str, max: usiz
         return Err(too_big());
     }
     // ureq errors once the limit is reached, so ask for one byte more than we accept.
-    let body = resp.body_mut().with_config().limit(max as u64 + 1).read_to_vec().map_err(|e| format!("unreadable answer ({e})"))?;
+    let limit = (max as u64).checked_add(1).ok_or_else(|| "the size limit is too large".to_string())?;
+    let body = resp.body_mut().with_config().limit(limit).read_to_vec().map_err(|e| format!("unreadable answer ({e})"))?;
     if body.len() > max { Err(too_big()) } else { Ok(body) }
 }
 

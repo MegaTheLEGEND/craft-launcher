@@ -189,11 +189,17 @@ impl NativeBackend {
     /// Adds a third-party app, then looks for what's installed and what's released. ArtCraft
     /// provides no support for these apps; the launcher only keeps them up to date.
     fn add_custom_app(&mut self, input: &str) {
-        match self.custom.add(input, crate::now()) {
+        // Changed on a copy and kept only once it is saved, so an app that couldn't be saved is
+        // never shown as added, only to vanish at the next start.
+        let mut staged = self.custom.clone();
+        match staged.add(input, crate::now()) {
             Ok(repo) => {
-                if let Err(e) = crate::third_party::save(&self.custom, &self.paths.third_party_apps()) {
-                    log::warn!("couldn't save the third-party apps list: {e}");
+                if let Err(e) = crate::third_party::save(&staged, &self.paths.third_party_apps()) {
+                    log::warn!("couldn't save the third-party apps list, so {repo} wasn't added: {e}");
+                    self.emit_custom_apps();
+                    return;
                 }
+                self.custom = staged;
                 custom::set_custom(&self.custom);
                 self.emit_custom_apps();
                 self.detect_all();
@@ -207,16 +213,22 @@ impl NativeBackend {
     /// installed are left alone (the user can uninstall first), and its saved record stays so
     /// adding the app back finds it again.
     fn remove_custom_app(&mut self, id: &str) {
+        // Changed on a copy and kept only once it is saved, so a removal that couldn't be saved
+        // doesn't come back at the next start.
+        let mut staged = self.custom.clone();
+        if !staged.remove(id) {
+            return;
+        }
+        if let Err(e) = crate::third_party::save(&staged, &self.paths.third_party_apps()) {
+            log::warn!("couldn't save the third-party apps list, so {id} wasn't removed: {e}");
+            self.emit_custom_apps();
+            return;
+        }
         let running = self.shared.jobs.lock().unwrap_or_else(PoisonError::into_inner).get(id).cloned();
         if let Some(stop) = running {
             stop.cancel();
         }
-        if !self.custom.remove(id) {
-            return;
-        }
-        if let Err(e) = crate::third_party::save(&self.custom, &self.paths.third_party_apps()) {
-            log::warn!("couldn't save the third-party apps list: {e}");
-        }
+        self.custom = staged;
         custom::set_custom(&self.custom);
         self.shared.installed.lock().unwrap_or_else(PoisonError::into_inner).remove(id);
         self.shared.latest.lock().unwrap_or_else(PoisonError::into_inner).remove(id);
